@@ -10,5 +10,6 @@ router.get("/", controller.list);
 router.put("/:id", controller.update);
 router.delete("/:id", controller.remove);
 router.post("/preview", controller.preview);
+router.post("/preview-html", controller.previewHtml);
 
 module.exports = router;

@@ -29,13 +29,15 @@ async function createNotification(req, res, next) {
       });
     }
 
-    // 🔥 STEP 3: Build payload
+    // STEP 3: Build multi-channel payload
+    const channel = req.body.channel || "email";
     const payload = {
       projectId: req.projectId,
       apiKeyId: req.apiKeyId || null,
-      recipientEmail:
-        req.body.recipientEmail ||
-        (req.body.data && req.body.data.email),
+      channel,
+      recipientEmail: req.body.recipientEmail || (req.body.data && req.body.data.email),
+      recipientPhone: req.body.recipientPhone || (req.body.data && req.body.data.phone),
+      deviceToken: req.body.deviceToken || (req.body.data && req.body.data.token),
       subject: req.body.subject,
       body: req.body.body,
       event: req.body.event,
@@ -44,25 +46,32 @@ async function createNotification(req, res, next) {
       metadata: req.body.metadata
     };
 
-    // 🔥 STEP 4: Validate
-    if (
-      !payload.event &&
-      (!payload.recipientEmail || !payload.subject || !payload.body)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Either provide { event, data } or { recipientEmail, subject, body }"
-      });
+    // STEP 4: Validate per channel
+    if (!payload.event) {
+      if (channel === "email" && (!payload.recipientEmail || !payload.subject || !payload.body)) {
+        return res.status(400).json({ success: false, message: "Email requires: recipientEmail, subject, body (or use event+data)" });
+      }
+      if (channel === "sms" && (!payload.recipientPhone || !payload.body)) {
+        return res.status(400).json({ success: false, message: "SMS requires: recipientPhone, body" });
+      }
+      if (channel === "push" && (!payload.deviceToken || !payload.subject || !payload.body)) {
+        return res.status(400).json({ success: false, message: "Push requires: deviceToken, subject, body" });
+      }
     }
 
-    // 🔥 STEP 5: Process
+    // STEP 5: Process
     const data = await notificationService.enqueueNotification(payload);
 
-    // 🔥 STEP 6: Save response for idempotency replay
+    // STEP 6: Track usage for billing
+    if (req.usageUserId) {
+      const usageService = require("../services/usageService");
+      await usageService.incrementUsage(req.projectId, req.usageUserId, channel).catch(() => {});
+    }
+
+    // STEP 7: Save response for idempotency replay
     await saveIdempotencyResponse(idempotencyKey, data);
 
-    // 🔥 STEP 7: Logging
+    // STEP 8: Logging
     await logService.writeLog({
       level: "info",
       service: "api",
@@ -72,6 +81,7 @@ async function createNotification(req, res, next) {
       projectId: req.projectId,
       metadata: {
         notificationId: data.id,
+        channel,
         eventName: payload.event || "direct"
       }
     });

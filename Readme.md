@@ -1,238 +1,399 @@
-# NotifyStack — SaaS Notification Platform
+# NotifyStack — Multi-Channel Notification SaaS Platform
 
-A production-grade, multi-tenant notification SaaS built with **Node.js**, **Express**, **Kafka**, **Redis**, and **PostgreSQL**.
+Production-ready notification infrastructure for email, SMS, and push notifications.
+Built with Node.js, PostgreSQL, Redis, Kafka, and React.
+
+---
 
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                    NotifyStack Platform                       │
-│                                                              │
-│  ┌─────────┐    ┌────────────────────┐    ┌──────────────┐  │
-│  │Dashboard │───▶│   API Server (3000) │◀───│  SDK Client  │  │
-│  │ React UI │    │                    │    │  (Node.js)   │  │
-│  │  :5173   │    │  JWT + API Key Auth │    │              │  │
-│  └─────────┘    └─────────┬──────────┘    └──────────────┘  │
-│                           │                                  │
-│           ┌───────────────┼───────────────┐                  │
-│           ▼               ▼               ▼                  │
-│     ┌──────────┐   ┌──────────┐   ┌──────────────┐          │
-│     │PostgreSQL│   │  Redis   │   │    Kafka     │          │
-│     │  Users   │   │Rate Limit│   │ email_queue  │          │
-│     │ Projects │   │Idempotent│   │  email_dlq   │          │
-│     │  Events  │   │  Cache   │   │              │          │
-│     └──────────┘   └──────────┘   └──────┬───────┘          │
-│                                          │                   │
-│                                   ┌──────▼───────┐          │
-│                                   │   Worker     │          │
-│                                   │ Email Sender │          │
-│                                   │ Retry + DLQ  │          │
-│                                   └──────────────┘          │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────┐     ┌──────────────┐     ┌─────────────────────────┐
+│   Dashboard      │────▶│   API Server │────▶│        Kafka            │
+│   (React/Vite)   │     │   (Express)  │     │  email_queue / email_dlq│
+└─────────────────┘     └──────────────┘     └─────────┬───────────────┘
+                              │                         │
+                              │                         ▼
+                         ┌────┴────┐         ┌─────────────────────┐
+                         │PostgreSQL│         │     Worker          │
+                         │  Redis   │         │  ┌───────────────┐  │
+                         └─────────┘         │  │ SMTP/SendGrid │  │
+                                              │  │ Mailgun/Twilio│  │
+                                              │  │ FCM/WebPush   │  │
+                                              │  └───────────────┘  │
+                                              └─────────────────────┘
 ```
 
 ## Features
 
-- **Multi-tenant** — Users → Projects → API Keys → Notifications
-- **JWT Auth** with roles (USER / ADMIN)
-- **Stripe-style API keys** (ntf_live_xxx, SHA-256 hashed, show once)
-- **Event-driven templates** with {{variable}} resolution
-- **Predefined events**: USER_LOGIN, USER_SIGNUP, ORDER_PLACED, PASSWORD_RESET
-- **Node.js SDK** with auto-retry, idempotency, exponential backoff
-- **Structured logging** with service, event, requestId, metadata
-- **DLQ management** — retry single/bulk from dashboard
-- **Rate limiting** per API key via Redis
-- **Idempotency** via Redis (x-idempotency-key header)
-- **Professional dashboard** — black & white Stripe-inspired UI
+### Multi-Channel Delivery
+- **Email**: SMTP, SendGrid, Mailgun with auto-failover
+- **SMS**: Twilio integration
+- **Push**: Firebase Cloud Messaging + Web Push (VAPID)
 
-## Prerequisites
+### Reliability
+- Multi-provider routing with weighted selection (70/30 split etc.)
+- Circuit breaker (auto-disable provider after 5 failures, re-enable after 60s)
+- Exponential backoff retry (1m → 5m → 30m → 2h → 6h) with ±20% jitter
+- Dead Letter Queue with bulk retry
+- Idempotency (safe retries via `x-idempotency-key`)
 
-- Node.js 18+
-- PostgreSQL
-- Redis
-- Apache Kafka (with Zookeeper)
+### Security
+- JWT authentication + API key auth (SHA-256 hashed, Stripe-style `ntf_live_` prefix)
+- RBAC (USER / ADMIN roles)
+- Rate limiting per API key (Redis-backed)
+- Helmet security headers
+- DKIM email signing support
+- Usage limit enforcement per plan
 
-## Quick Start
+### Dashboard
+- Real-time analytics with Recharts (line, bar, pie charts)
+- Multi-project management
+- Notification history with filters + export (JSON/CSV)
+- Log viewer with quick filter pills (errors, DLQ, retries)
+- HTML email template builder with live preview
+- Billing & usage tracking
 
-### 1. Database Setup
+### Authentication
+- Email + password signup/login
+- Google OAuth (Sign in with Google)
+- OTP-based login (6-digit code via email)
+
+### Billing (Stripe)
+- Free (1,000/mo), Pro ($29 - 50K/mo), Scale ($99 - unlimited)
+- Stripe Checkout + Customer Portal
+- Webhook handling (subscription lifecycle)
+- Monthly usage tracking per channel
+- Invoice history
+
+---
+
+## Quick Start (Local Development)
+
+### Prerequisites
+- Node.js 20+
+- PostgreSQL 14+
+- Redis 7+
+- Kafka (via Docker recommended)
+
+### 1. Clone and install
+
 ```bash
-# Create database
-createdb notifications
+git clone <your-repo-url>
+cd notification
 
-# Run migrations
-cd api && npm install && npm run migrate
+# Install all services
+cd api && npm install && cd ..
+cd worker && npm install && cd ..
+cd dashboard && npm install && cd ..
 ```
 
-### 2. Start Infrastructure
+### 2. Start infrastructure
+
 ```bash
-# Start Redis
-redis-server
-
-# Start Kafka (with Zookeeper)
-# Follow your Kafka installation guide
-
-# Create Kafka topics
-cd api && npm run create-topics
+# Using Docker (recommended)
+docker run -d --name postgres -e POSTGRES_DB=notifystack -e POSTGRES_USER=notifystack -e POSTGRES_PASSWORD=password -p 5432:5432 postgres:16-alpine
+docker run -d --name redis -p 6379:6379 redis:7-alpine
+docker run -d --name zookeeper -e ZOOKEEPER_CLIENT_PORT=2181 confluentinc/cp-zookeeper:7.5.0
+docker run -d --name kafka -e KAFKA_BROKER_ID=1 -e KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 --link zookeeper -p 9092:9092 confluentinc/cp-kafka:7.5.0
 ```
 
-### 3. Start Services
+### 3. Initialize database
+
 ```bash
-# Terminal 1: API Server
-cd api && npm run dev
+cd api
+psql postgres://notifystack:password@localhost:5432/notifystack < db/schema.sql
+```
+
+### 4. Configure environment
+
+Create `api/.env`:
+```
+PORT=3000
+NODE_ENV=development
+DATABASE_URL=postgres://notifystack:password@localhost:5432/notifystack
+REDIS_URL=redis://127.0.0.1:6379
+KAFKA_BROKERS=localhost:9092
+JWT_SECRET=your-secret-change-this
+CORS_ORIGIN=http://localhost:5173
+```
+
+Create `worker/.env`:
+```
+DATABASE_URL=postgres://notifystack:password@localhost:5432/notifystack
+REDIS_URL=redis://127.0.0.1:6379
+KAFKA_BROKERS=localhost:9092
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=yourmail@gmail.com
+SMTP_PASS=your-app-password
+SMTP_FROM=yourmail@gmail.com
+```
+
+### 5. Start services
+
+```bash
+# Terminal 1: API
+cd api && node index.js
 
 # Terminal 2: Worker
-cd worker && npm install && npm run dev
+cd worker && node index.js
 
 # Terminal 3: Dashboard
-cd dashboard && npm install && npm run dev
+cd dashboard && npm run dev
 ```
 
-### 4. Access
-- **Dashboard**: http://localhost:5173
-- **API**: http://localhost:3000
-- **Health**: http://localhost:3000/health
+Visit `http://localhost:5173` — sign up, create a project, and start sending.
 
-## API Endpoints
+### 6. Promote admin
 
-### Auth (Public)
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | /v1/auth/signup | Register |
-| POST | /v1/auth/login | Login |
-| GET | /v1/auth/me | Current user (JWT) |
+```sql
+UPDATE users SET role = 'ADMIN' WHERE email = 'your@email.com';
+```
 
-### Projects (JWT)
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | /v1/projects | Create project |
-| GET | /v1/projects | List projects |
-| GET | /v1/projects/:id | Project details + stats |
-| DELETE | /v1/projects/:id | Delete project |
+---
 
-### API Keys (JWT, nested under project)
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | /v1/projects/:pid/keys | Create key |
-| GET | /v1/projects/:pid/keys | List keys |
-| DELETE | /v1/projects/:pid/keys/:kid | Revoke key |
-| POST | /v1/projects/:pid/keys/:kid/regenerate | Regenerate key |
+## Docker Compose (Full Stack)
 
-### Event Templates (JWT, nested under project)
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | /v1/projects/:pid/events | Create template |
-| GET | /v1/projects/:pid/events | List templates |
-| PUT | /v1/projects/:pid/events/:id | Update template |
-| DELETE | /v1/projects/:pid/events/:id | Delete template |
-| POST | /v1/projects/:pid/events/preview | Preview template |
+```bash
+# Start everything
+docker compose up -d
 
-### Notifications (API Key auth — for SDK)
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | /v1/notifications | Send notification |
-| GET | /v1/notifications | List notifications |
-| GET | /v1/notifications/dlq | Failed notifications |
-| POST | /v1/notifications/dlq/:id/requeue | Retry one |
-| POST | /v1/notifications/dlq/requeue-bulk | Retry many |
+# Initialize schema (first time only)
+docker compose exec postgres psql -U notifystack -d notifystack < api/db/schema.sql
+
+# Check health
+curl http://localhost:3000/health
+```
+
+Dashboard: `http://localhost`
+API: `http://localhost:3000`
+
+---
 
 ## SDK Usage
 
-```js
-const NotifySDK = require("notify-saas-sdk");
+### Install
 
-const notify = new NotifySDK("ntf_live_your_key", {
-  baseUrl: "http://localhost:3000"
+```bash
+npm install ./sdk
+# or publish to npm and: npm install notify-saas-sdk
+```
+
+### Email
+
+```javascript
+const NotifySDK = require("notify-saas-sdk");
+const notify = new NotifySDK("ntf_live_your_key_here", {
+  baseUrl: "http://localhost:3000",
+  debug: true
 });
 
-// Event-based (uses templates)
-await notify.track("USER_LOGIN", {
+// Event-based (uses template)
+await notify.track("USER_SIGNUP", {
   email: "user@example.com",
-  name: "Ayush",
-  time: new Date().toISOString()
+  name: "Ayush"
 });
 
 // Direct email
 await notify.send({
   to: "user@example.com",
-  subject: "Hello",
-  body: "Direct notification"
+  subject: "Welcome!",
+  body: "Thanks for signing up."
 });
 ```
 
-## Environment Variables
+### SMS
 
-### API (.env)
-| Variable | Default | Description |
-|----------|---------|-------------|
-| PORT | 3000 | API port |
-| DATABASE_URL | — | PostgreSQL connection string |
-| REDIS_URL | redis://127.0.0.1:6379 | Redis URL |
-| KAFKA_BROKERS | localhost:9092 | Kafka brokers |
-| JWT_SECRET | — | JWT signing secret |
-| JWT_EXPIRES_IN | 7d | Token expiry |
-| CORS_ORIGIN | http://localhost:5173 | Allowed CORS origin |
-| RATE_LIMIT_MAX | 120 | Requests per window |
+```javascript
+await notify.sendSms({
+  to: "+1234567890",
+  body: "Your verification code is 123456"
+});
+```
 
-### Worker (.env)
-| Variable | Default | Description |
-|----------|---------|-------------|
-| DATABASE_URL | — | PostgreSQL connection string |
-| KAFKA_BROKERS | localhost:9092 | Kafka brokers |
-| SMTP_HOST | — | Email server host |
-| SMTP_PORT | 587 | Email server port |
-| SMTP_USER | — | Email username |
-| SMTP_PASS | — | Email password |
-| MAX_RETRIES | 3 | Max retry before DLQ |
+### Push Notification
 
-## Folder Structure
+```javascript
+await notify.sendPush({
+  token: "device_fcm_token_here",
+  title: "New Message",
+  body: "You have a new notification",
+  data: { screen: "inbox" }
+});
+```
+
+### Batch
+
+```javascript
+const result = await notify.sendBatch([
+  { recipientEmail: "a@test.com", subject: "Hello A", body: "Hi", channel: "email" },
+  { recipientEmail: "b@test.com", subject: "Hello B", body: "Hi", channel: "email" }
+]);
+console.log(`Sent: ${result.succeeded}, Failed: ${result.failed}`);
+```
+
+---
+
+## API Reference
+
+### Authentication
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/v1/auth/signup` | Register (name, email, password) |
+| POST | `/v1/auth/login` | Login (email, password) |
+| GET | `/v1/auth/me` | Current user |
+| POST | `/v1/auth/google` | Google OAuth login (idToken) |
+| POST | `/v1/auth/otp/send` | Send OTP (email) |
+| POST | `/v1/auth/otp/verify` | Verify OTP (email, otp) |
+
+### Notifications (API Key auth)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/v1/notifications` | Send notification (email/sms/push) |
+| GET | `/v1/notifications` | List project notifications |
+| GET | `/v1/notifications/dlq` | List DLQ items |
+| POST | `/v1/notifications/dlq/:id/requeue` | Retry single DLQ item |
+| POST | `/v1/notifications/dlq/requeue-bulk` | Retry multiple (ids[]) |
+
+### Analytics (JWT)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/v1/analytics/overview` | Total, success/fail rate, latency |
+| GET | `/v1/analytics/timeseries` | Volume over time |
+| GET | `/v1/analytics/providers` | Per-provider performance |
+| GET | `/v1/analytics/channels` | Email vs SMS vs Push breakdown |
+| GET | `/v1/analytics/events` | Top events by volume |
+
+### Billing (JWT)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/v1/billing/plans` | Available plans |
+| GET | `/v1/billing/plan` | Current user plan |
+| GET | `/v1/billing/usage` | Monthly usage + history |
+| POST | `/v1/billing/checkout` | Stripe checkout (planId) |
+| POST | `/v1/billing/portal` | Stripe customer portal |
+| GET | `/v1/billing/invoices` | Invoice history |
+
+---
+
+## Production Hosting Guide
+
+### Option 1: Railway (Easiest)
+
+1. Push to GitHub
+2. Go to [railway.app](https://railway.app), create project
+3. Add services: PostgreSQL, Redis (from Railway templates)
+4. Add custom services from your repo:
+   - **API**: root dir = `api`, start = `node index.js`
+   - **Worker**: root dir = `worker`, start = `node index.js`
+   - **Dashboard**: root dir = `dashboard`, build = `npm run build`, start = static serve
+5. For Kafka: use [Upstash Kafka](https://upstash.com) (free tier)
+6. Set env vars in Railway dashboard
+
+### Option 2: DigitalOcean / Hetzner VPS
+
+```bash
+# On your VPS (Ubuntu 22.04)
+sudo apt update && sudo apt install -y docker.io docker-compose-plugin
+
+# Clone and deploy
+git clone <repo> && cd notification
+cp api/.env.example api/.env    # Edit with real values
+cp worker/.env.example worker/.env
+
+# Start
+docker compose up -d
+
+# Setup SSL with Caddy
+sudo apt install caddy
+# Caddyfile:
+# yourdomain.com {
+#   reverse_proxy localhost:80
+# }
+```
+
+### Email Deliverability (Prevent Spam)
+
+1. **SPF**: Add DNS TXT record: `v=spf1 include:_spf.google.com ~all`
+2. **DKIM**: Generate key pair, add DNS TXT record, set `DKIM_PRIVATE_KEY` in worker env
+3. **DMARC**: Add DNS TXT record: `v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com`
+4. **Use a custom domain** for sending (not gmail.com)
+5. **Set proper From header** matching your domain
+
+### Gmail App Password (for SMTP)
+1. Enable 2FA on your Google account
+2. Go to https://myaccount.google.com/apppasswords
+3. Create an app password for "Mail"
+4. Use that 16-char password as `SMTP_PASS`
+
+---
+
+## Environment Variables Reference
+
+### API Service
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_URL` | Yes | — | PostgreSQL connection string |
+| `REDIS_URL` | Yes | `redis://127.0.0.1:6379` | Redis connection string |
+| `KAFKA_BROKERS` | Yes | `localhost:9092` | Kafka broker addresses |
+| `JWT_SECRET` | Yes | — | JWT signing secret (64+ chars) |
+| `CORS_ORIGIN` | Yes | — | Frontend URL |
+| `STRIPE_SECRET_KEY` | No | — | Stripe secret key |
+| `GOOGLE_CLIENT_ID` | No | — | Google OAuth client ID |
+
+### Worker Service
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_URL` | Yes | — | Same PostgreSQL URL |
+| `REDIS_URL` | Yes | — | Same Redis URL |
+| `KAFKA_BROKERS` | Yes | — | Same Kafka brokers |
+| `SMTP_HOST` | Yes* | — | SMTP server host |
+| `SMTP_USER` | Yes* | — | SMTP username |
+| `SMTP_PASS` | Yes* | — | SMTP password |
+| `SENDGRID_API_KEY` | No | — | SendGrid (enable as fallback) |
+| `TWILIO_ACCOUNT_SID` | No | — | Twilio SMS |
+| `TWILIO_AUTH_TOKEN` | No | — | Twilio SMS |
+| `TWILIO_FROM_NUMBER` | No | — | Twilio sender number |
+
+*At least one email provider is required.
+
+---
+
+## Project Structure
 
 ```
 notification/
 ├── api/                    # Express API server
-│   ├── config/             # Environment config
-│   ├── controllers/        # Route handlers
-│   ├── db/                 # Schema, migrations, pool
-│   ├── kafka/              # Producer, topic admin
-│   ├── middleware/          # Auth, rate limit, logging
-│   ├── redis/              # Cache, idempotency, rate limiter
-│   ├── routes/             # Express route definitions
-│   ├── services/           # Business logic
-│   ├── utils/              # Logger
-│   └── index.js            # Entry point
-├── worker/                 # Kafka consumer + email sender
 │   ├── config/
-│   ├── db/
-│   ├── kafka/              # Consumer, DLQ producer
-│   ├── services/           # Email sender, log writer
-│   └── index.js
-├── dashboard/              # React + Tailwind UI
-│   └── src/
-│       ├── components/     # Toast, Modal, Pagination, Badge
-│       ├── contexts/       # AuthContext, ProjectContext
-│       ├── layouts/        # MainLayout
-│       ├── lib/            # API client, utils
-│       └── pages/          # All dashboard pages
-├── sdk/                    # Node.js SDK
-│   ├── index.js
-│   └── README.md
-└── README.md               # This file
+│   ├── controllers/
+│   ├── db/                 # Pool + schema.sql
+│   ├── kafka/              # Producer
+│   ├── middleware/          # Auth, rate limit, usage, audit
+│   ├── redis/              # Idempotency
+│   ├── routes/             # All route files
+│   └── services/           # Business logic
+├── worker/                 # Kafka consumer + notification delivery
+│   ├── config/
+│   ├── kafka/              # Consumer + producer (DLQ)
+│   ├── providers/          # SMTP, SendGrid, Mailgun, Twilio, FCM, WebPush
+│   ├── services/           # Router, email sender, templates
+│   └── utils/              # Logger
+├── dashboard/              # React + Vite frontend
+│   ├── src/
+│   │   ├── components/     # Badge, Pagination, Toast, etc.
+│   │   ├── contexts/       # Auth, Project providers
+│   │   ├── layouts/        # MainLayout with responsive sidebar
+│   │   ├── lib/            # API client, utils
+│   │   └── pages/          # All dashboard pages
+│   └── nginx.conf          # Production Nginx config
+├── sdk/                    # Node.js SDK (npm package)
+├── docker-compose.yml      # Full stack deployment
+└── Readme.md               # This file
 ```
 
-## Scaling Considerations
+---
 
-- **Kafka partitions**: 6 for email_queue, 3 for DLQ — scale consumers horizontally
-- **Redis**: Used for rate limiting + idempotency, can be clustered
-- **PostgreSQL**: Add read replicas for dashboard queries
-- **API**: Stateless — run behind a load balancer
-- **Worker**: Scale by adding more consumer instances (same group ID)
+## License
 
-## Security
-
-- Passwords hashed with bcrypt (12 rounds)
-- API keys stored as SHA-256 hashes only
-- JWT tokens with configurable expiry
-- Rate limiting per API key via Redis
-- Input validation via express-validator
-- Helmet.js security headers
-- CORS with configurable origin whitelist
-- No cross-tenant data access (enforced at DB + middleware)
+MIT

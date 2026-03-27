@@ -6,11 +6,14 @@ const eventService = require("./eventService");
 
 async function enqueueNotification(input) {
   const id = `ntf_${nanoid(20)}`;
+  const channel = input.channel || "email";
 
   let subject = input.subject;
   let body = input.body;
   let eventName = input.eventName || null;
   const recipientEmail = input.recipientEmail || (input.data && input.data.email);
+  const recipientPhone = input.recipientPhone || (input.data && input.data.phone);
+  const deviceToken = input.deviceToken || (input.data && input.data.token);
 
   // Event-based: resolve template
   if (input.event && input.projectId) {
@@ -26,30 +29,46 @@ async function enqueueNotification(input) {
     body = resolved.body;
   }
 
-  if (!recipientEmail) {
+  // Validate recipient based on channel
+  if (channel === "email" && !recipientEmail) {
     const err = new Error("recipientEmail (or data.email for event-based) is required");
     err.statusCode = 400;
     throw err;
   }
-  if (!subject || !body) {
-    const err = new Error("subject and body are required (or use event-based with templates)");
+  if (channel === "sms" && !recipientPhone) {
+    const err = new Error("recipientPhone (or data.phone) is required for SMS");
+    err.statusCode = 400;
+    throw err;
+  }
+  if (channel === "push" && !deviceToken) {
+    const err = new Error("deviceToken (or data.token) is required for push");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (!subject && channel !== "sms") subject = eventName || "Notification";
+  if (!body) {
+    const err = new Error("body is required");
     err.statusCode = 400;
     throw err;
   }
 
   await pool.query(
-    `INSERT INTO notifications (id, project_id, api_key_id, event_name, recipient_email, subject, body, status, metadata)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, 'queued', $8)`,
-    [id, input.projectId, input.apiKeyId || null, eventName, recipientEmail, subject, body, input.metadata ? JSON.stringify(input.metadata) : null]
+    `INSERT INTO notifications (id, project_id, api_key_id, event_name, channel, recipient_email, recipient_phone, device_token, subject, body, status, metadata)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'queued', $11)`,
+    [id, input.projectId, input.apiKeyId || null, eventName, channel, recipientEmail || null, recipientPhone || null, deviceToken || null, subject || "SMS", body, input.metadata ? JSON.stringify(input.metadata) : null]
   );
 
   const producer = await getProducer();
   await producer.send({
     topic: config.topicNotifications,
-    messages: [{ key: id, value: JSON.stringify({ id, projectId: input.projectId, recipientEmail, subject, body, attempts: 0 }) }]
+    messages: [{ key: id, value: JSON.stringify({
+      id, projectId: input.projectId, channel, recipientEmail, recipientPhone, deviceToken,
+      subject, body, eventName: eventName || null, attempts: 0
+    }) }]
   });
 
-  return { id, status: "queued" };
+  return { id, status: "queued", channel };
 }
 
 async function getNotifications(projectId, { limit = 50, offset = 0, status } = {}) {
@@ -132,9 +151,13 @@ async function requeueNotification(id, projectId) {
       value: JSON.stringify({
         id: row.id,
         projectId: row.project_id,
+        channel: row.channel || "email",
         recipientEmail: row.recipient_email,
+        recipientPhone: row.recipient_phone,
+        deviceToken: row.device_token,
         subject: row.subject,
         body: row.body,
+        eventName: row.event_name || null,
         attempts: 0
       })
     }]

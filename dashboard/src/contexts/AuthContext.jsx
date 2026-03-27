@@ -43,13 +43,19 @@ export function AuthProvider({ children }) {
     return u;
   }
 
-  async function signup(email, password, name) {
-    const res = await api.post("/v1/auth/signup", { email, password, name });
+  async function signup(name, email, password) {
+    const res = await api.post("/v1/auth/signup", { name, email, password });
     const { user: u, token } = res.data.data;
     localStorage.setItem("ntf_token", token);
     localStorage.setItem("ntf_user", JSON.stringify(u));
     setUser(u);
     return u;
+  }
+
+  function loginWithToken(token, userData) {
+    localStorage.setItem("ntf_token", token);
+    localStorage.setItem("ntf_user", JSON.stringify(userData));
+    setUser(userData);
   }
 
   function logout() {
@@ -60,7 +66,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, isAdmin: user?.role === "ADMIN" }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, loginWithToken, logout, isAdmin: user?.role === "ADMIN" }}>
       {children}
     </AuthContext.Provider>
   );

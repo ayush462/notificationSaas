@@ -82,4 +82,26 @@ async function preview(req, res, next) {
   }
 }
 
-module.exports = { create, list, update, remove, preview };
+async function previewHtml(req, res, next) {
+  try {
+    const project = await ensureProjectAccess(req, res);
+    if (!project) return;
+    const { eventName, data } = req.body;
+    if (!eventName) return res.status(400).json({ success: false, message: "eventName is required" });
+    const template = await eventService.getTemplate(project.id, eventName);
+    if (!template) return res.status(404).json({ success: false, message: "Template not found" });
+    const resolved = eventService.resolveTemplate(template, data || {});
+    const { buildHtmlEmail } = require("../services/emailTemplate");
+    const html = buildHtmlEmail({
+      subject: resolved.subject,
+      body: resolved.body,
+      eventName: eventName.toUpperCase(),
+      recipientEmail: (data && data.email) || "user@example.com"
+    });
+    return res.json({ success: true, data: { ...resolved, html } });
+  } catch (e) {
+    next(e);
+  }
+}
+
+module.exports = { create, list, update, remove, preview, previewHtml };

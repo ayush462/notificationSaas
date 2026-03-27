@@ -16,6 +16,7 @@ export default function Events() {
   const [form, setForm] = useState({ eventName: "", subjectTemplate: "", bodyTemplate: "" });
   const [previewData, setPreviewData] = useState("{}");
   const [previewResult, setPreviewResult] = useState(null);
+  const [previewTab, setPreviewTab] = useState("html");
   const [saving, setSaving] = useState(false);
 
   async function load() {
@@ -90,7 +91,7 @@ export default function Events() {
   async function runPreview() {
     try {
       const data = JSON.parse(previewData);
-      const res = await api.post(`/v1/projects/${current.id}/events/preview`, {
+      const res = await api.post(`/v1/projects/${current.id}/events/preview-html`, {
         eventName: previewModal.event_name,
         data
       });
@@ -202,27 +203,64 @@ export default function Events() {
       </Modal>
 
       {/* Preview Modal */}
-      <Modal open={!!previewModal} onClose={() => setPreviewModal(null)} title="Preview Template" maxWidth="max-w-2xl">
+      <Modal open={!!previewModal} onClose={() => { setPreviewModal(null); setPreviewResult(null); setPreviewTab("html"); }} title="Preview Template" maxWidth="max-w-3xl">
         <div className="space-y-4">
           <div>
             <label className="label">Template Variables (JSON)</label>
             <textarea
-              className="input min-h-[120px] font-mono text-xs resize-y"
+              className="input min-h-[100px] font-mono text-xs resize-y"
               value={previewData}
               onChange={(e) => setPreviewData(e.target.value)}
             />
           </div>
           <button onClick={runPreview} className="btn btn-primary">Render Preview</button>
           {previewResult && (
-            <div className="rounded-lg border border-surface-border bg-surface-muted p-4 space-y-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Subject</p>
-                <p className="text-sm font-medium text-ink mt-1">{previewResult.subject}</p>
+            <div className="space-y-3">
+              {/* Tabs */}
+              <div className="flex gap-1 rounded-lg border border-surface-border bg-surface-muted p-1">
+                {["html", "text"].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setPreviewTab(tab)}
+                    className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                      previewTab === tab ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink"
+                    }`}
+                  >
+                    {tab === "html" ? "📧 Email Preview" : "📄 Plain Text"}
+                  </button>
+                ))}
               </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Body</p>
-                <pre className="mt-1 text-sm text-ink whitespace-pre-wrap">{previewResult.body}</pre>
-              </div>
+
+              {previewTab === "html" && previewResult.html ? (
+                <div className="rounded-lg border border-surface-border overflow-hidden bg-neutral-100">
+                  <div className="bg-neutral-200 px-3 py-2 flex items-center gap-2">
+                    <div className="flex gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                    </div>
+                    <span className="text-[10px] text-ink-muted ml-2">Email Preview — {previewResult.subject}</span>
+                  </div>
+                  <iframe
+                    srcDoc={previewResult.html}
+                    title="Email preview"
+                    className="w-full border-0"
+                    style={{ height: "520px" }}
+                    sandbox=""
+                  />
+                </div>
+              ) : (
+                <div className="rounded-lg border border-surface-border bg-surface-muted p-4 space-y-3">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Subject</p>
+                    <p className="text-sm font-medium text-ink mt-1">{previewResult.subject}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Body</p>
+                    <pre className="mt-1 text-sm text-ink whitespace-pre-wrap">{previewResult.body}</pre>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
