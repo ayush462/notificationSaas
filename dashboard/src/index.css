@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased text-ink bg-white;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-surface-border bg-white p-6 shadow-card;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors;
+  }
+  .btn-primary {
+    @apply bg-ink text-white hover:bg-neutral-800;
+  }
+  .btn-secondary {
+    @apply border border-surface-border bg-white text-ink hover:bg-surface-muted;
+  }
+  .btn-danger {
+    @apply border border-red-200 bg-white text-red-700 hover:bg-red-50;
+  }
+  .input {
+    @apply w-full rounded-lg border border-surface-border bg-white px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:border-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-400;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-ink-muted;
+  }
+  .table-wrap {
+    @apply overflow-x-auto rounded-lg border border-surface-border;
+  }
+  table.data-table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+  table.data-table th {
+    @apply border-b border-surface-border bg-surface-muted px-4 py-3 font-medium text-ink-muted;
+  }
+  table.data-table td {
+    @apply border-b border-surface-border px-4 py-3 text-ink;
+  }
+  table.data-table tr:last-child td {
+    @apply border-b-0;
+  }
+}
