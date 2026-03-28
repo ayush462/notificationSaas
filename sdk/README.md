@@ -1,134 +1,67 @@
-# NotifyStack SDK Guide
+# NotifyStack Node.js SDK
 
-The NotifyStack Node.js SDK makes it incredibly simple to orchestrate multi-channel messaging.
+[![npm version](https://img.shields.io/npm/v/@ayush0x44/notifystack.svg)](https://www.npmjs.com/package/@ayush0x44/notifystack)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A core feature of the platform is that you **DO NOT** need to write provider-specific logic in your codebase. You simply set your provider credentials (like Twilio, SendGrid, or Mailgun) in the `.env` file of the `worker`, and the backend handles all routing, circuit-breaking, and failovers!
+The official Node.js SDK for **NotifyStack** — a high-performance, distributed notification SaaS platform. Send Emails, SMS, Push, and In-App notifications with a single unified API.
 
-### Initialization
+## 🚀 Features
 
-```javascript
-const NotifySDK = require("notifystack-client");
+- **Zero Dependencies**: Lightweight and fast (uses native `fetch`).
+- **Unified API**: One interface for all channels (Email, SMS, Push, In-App).
+- **Auto-Retry**: Built-in exponential backoff for network flakes.
+- **Idempotency**: Safe retries without duplicate notifications.
+- **Batching**: Send up to 100 notifications in a single call.
 
-const notify = new NotifySDK("ntf_live_YOUR_API_KEY", {
-  baseUrl: "http://localhost:3000",
-  debug: true
-});
+## 📦 Installation
+
+```bash
+npm install @ayush0x44/notifystack
 ```
 
----
-
-## Code Snippets: Using Providers
-
-> [!TIP]
-> The beauty of NotifyStack is that the backend parses the `channel: "email"` flag. If `SMTP` fails, it automatically falls back to `SendGrid`, then to `Mailgun` based on the worker configuration.
-
-### 1. Sending Email (SendGrid / Mailgun / SMTP)
-
-When you send an email via the SDK, the worker will automatically pipe it to whatever email provider you have active! We strongly recommend setting up **SendGrid** or **Mailgun** API keys for robust production deliverability.
+## 🛠️ Quick Start
 
 ```javascript
-// This magically uses SendGrid, Mailgun, or SMTP under the hood!
-await notify.send({
-  channel: "email",
-  to: "user@example.com",
-  subject: "Welcome to our SaaS!",
-  body: "Thank you for signing up. Please verify your email.",
+const { NotifySDK } = require("@ayush0x44/notifystack");
+
+// Initialize the client
+const notify = new NotifySDK("ntf_live_your_api_key", {
+  baseUrl: "https://notificationsaas.onrender.com" // Point to your cloud API
 });
 
-// There is also a helper shorthand specifically for email:
-await notify.sendEmail({
-  to: "user@example.com",
-  subject: "Alert",
-  body: "Critical threshold reached"
-});
-```
+async function main() {
+  // 1. Send an Event-based notification (uses templates)
+  await notify.track("ORDER_PLACED", {
+    email: "customer@example.com",
+    orderId: "ORD-123"
+  });
 
-### 2. Sending SMS (Twilio)
+  // 2. Send a direct Email
+  await notify.send({
+    to: "hello@world.com",
+    subject: "Welcome!",
+    body: "Thanks for joining our platform."
+  });
 
-Configure `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` in the worker. Then simply pass `channel: "sms"`!
-
-```javascript
-// This tells the worker to use the configured Twilio provider!
-await notify.send({
-  channel: "sms",
-  to: "+1234567890",
-  subject: "Auth", // Not used in typical SMS, but needed for schema
-  body: "Your NotifyStack verification code is: 4892",
-});
-
-// Shorthand method:
-await notify.sendSms({
-  to: "+1234567890",
-  body: "Your login OTP is 5543"
-});
-```
-
-### 3. Firing Pre-Defined Events
-
-Instead of writing templates in code, you can build them in the dashboard and fire them:
-
-```javascript
-// Triggers the "USER_SIGNUP" flow and dynamically populates 
-// the email/SMS template with the `name` and `tier` payload.
-await notify.track("USER_SIGNUP", {
-  email: "newuser@example.com",
-  name: "Jane Doe",
-  tier: "Premium"
-});
-```
-
-### 4. Delayed / Scheduled Notifications (NEW)
-
-You can pass a `scheduledAt` ISO timestamp to delay send:
-
-```javascript
-// Send a reminder email tomorrow
-const tomorrow = new Date();
-tomorrow.setDate(tomorrow.getDate() + 1);
-
-await notify.sendEmail({
-  to: "trial@example.com",
-  subject: "How is your trial?",
-  body: "Let us know if you need help getting set up!",
-  scheduledAt: tomorrow.toISOString()
-});
-```
-
-For full Node API references, see `index.js`.
-
----
-
-## 5. In-App Notification Center (React)
-
-You can embed a beautiful, real-time notification bell directly inside your React/Next SaaS application. This allows your users to see the history of notifications sent to them!
-
-1. **Send a Notification tagged with a `userId`:**
-```javascript
-// Server-side
-await notify.send({
-  channel: "inapp",
-  externalUserId: "user_8912", // Your internal user ID
-  subject: "New Comment",
-  body: "Someone replied to your thread."
-});
-```
-
-2. **Embed the Bell in your Frontend:**
-```javascript
-import { NotificationBell } from "notifystack-client/react";
-
-function Header() {
-  return (
-    <header>
-      <h1>My SaaS</h1>
-      {/* Drop in the bell component! */}
-      <NotificationBell 
-        apiKey="ntf_live_YOUR_PUBLIC_KEY" 
-        userId="user_8912" 
-        baseUrl="http://localhost:3000" 
-      />
-    </header>
-  );
+  // 3. Send an SMS
+  await notify.sendSms({
+    to: "+1234567890",
+    body: "Your verification code is 1234"
+  });
 }
+
+main().catch(console.error);
 ```
-*Note: Make sure to use a key created with standard frontend scope if implementing row-level security, or proxy through your backend!*
+
+## ⚙️ Configuration
+
+| Option | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `baseUrl` | `string` | `http://localhost:3000` | The URL of your NotifyStack API |
+| `maxRetries` | `number` | `3` | Max attempts for failed requests |
+| `timeoutMs` | `number` | `10000` | Request timeout duration |
+| `debug` | `boolean` | `false` | Enable verbose logging |
+
+## 📖 License
+
+MIT © [Ayush](https://github.com/ayush462)

@@ -27,7 +27,7 @@ class NotifySDK {
     this.apiKey = apiKey;
     this.baseUrl = (options.baseUrl || "http://localhost:3000").replace(/\/$/, "");
     this.maxRetries = options.maxRetries ?? 3;
-    this.timeoutMs = options.timeoutMs ?? 10000;
+    this.timeoutMs = options.timeoutMs ?? 30000;
     this.debug = options.debug || false;
   }
 
@@ -263,5 +263,7 @@ class NotifyError extends Error {
   }
 }
 
-module.exports = NotifySDK;
-module.exports.NotifyError = NotifyError;
+module.exports = {
+  NotifySDK,
+  NotifyError
+};

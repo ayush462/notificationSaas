@@ -1,12 +1,31 @@
 {
-  "name": "notify-saas-sdk",
-  "version": "1.0.0",
-  "description": "Node.js SDK for NotifyStack SaaS notification platform",
+  "name": "@ayush0x44/notifystack",
+  "version": "1.0.2",
+  "description": "The official Node.js SDK for NotifyStack — a scalable, production-ready notification SaaS platform.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"No tests yet\""
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["notifications", "email", "saas", "sdk"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ayush462/notificationSaas.git"
+  },
+  "keywords": [
+    "notifications",
+    "email",
+    "sms",
+    "push",
+    "saas",
+    "notifystack",
+    "node-sdk"
+  ],
+  "author": "Ayush",
   "license": "MIT",
-  "dependencies": {}
+  "bugs": {
+    "url": "https://github.com/ayush462/notificationSaas/issues"
+  },
+  "homepage": "https://github.com/ayush462/notificationSaas#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
