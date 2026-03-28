@@ -132,8 +132,8 @@ export default function Landing() {
                 <span className="ml-2 text-xs text-neutral-500 font-mono">email_sender.js</span>
               </div>
               <pre className="text-sm font-mono leading-relaxed overflow-x-auto text-neutral-300 flex-1">
+<span className="text-violet-400">const</span> { "{ NotifySDK }" } = <span className="text-blue-400">require</span>(<span className="text-green-400">"@ayush0x44/notifystack"</span>);{"\n"}
 <span className="text-violet-400">const</span> notify = <span className="text-violet-400">new</span> <span className="text-blue-400">NotifySDK</span>(<span className="text-green-400">"ntf_live_key"</span>);{"\n\n"}
-<span className="text-neutral-500">{"// Send Email Event"}</span>{"\n"}
 <span className="text-violet-400">await</span> notify.<span className="text-blue-400">track</span>(<span className="text-green-400">"USER_SIGNUP"</span>, {"{"}{"\n"}
   <span className="text-neutral-400">email:</span> <span className="text-green-400">"user@example.com"</span>,{"\n"}
   <span className="text-neutral-400">name:</span>  <span className="text-green-400">"Ayush"</span>{"\n"}
@@ -155,8 +155,8 @@ export default function Landing() {
                 <span className="ml-2 text-xs text-neutral-500 font-mono">sms_sender.js</span>
               </div>
               <pre className="text-sm font-mono leading-relaxed overflow-x-auto text-neutral-300 flex-1">
+<span className="text-violet-400">const</span> { "{ NotifySDK }" } = <span className="text-blue-400">require</span>(<span className="text-green-400">"@ayush0x44/notifystack"</span>);{"\n"}
 <span className="text-violet-400">const</span> notify = <span className="text-violet-400">new</span> <span className="text-blue-400">NotifySDK</span>(<span className="text-green-400">"ntf_live_key"</span>);{"\n\n"}
-<span className="text-neutral-500">{"// Send Direct SMS"}</span>{"\n"}
 <span className="text-violet-400">await</span> notify.<span className="text-blue-400">sendSms</span>({"{"}{"\n"}
   <span className="text-neutral-400">to:</span> <span className="text-green-400">"+1234567890"</span>,{"\n"}
   <span className="text-neutral-400">body:</span> <span className="text-green-400">"Your code is 123456"</span>{"\n"}
@@ -333,7 +333,7 @@ export default function Landing() {
           <p className="text-xs text-ink-muted">&copy; {new Date().getFullYear()} NotifyStack. All rights reserved.</p>
           <div className="flex gap-6 text-sm text-ink-muted">
             <Link to="/docs" className="hover:text-ink transition-colors">Docs</Link>
-            <a href="mailto:support@notifystack.dev" className="hover:text-ink transition-colors">Support</a>
+            <a href="mailto:support@notifystack.shop" className="hover:text-ink transition-colors">Support</a>
           </div>
         </div>
       </footer>

@@ -32,7 +32,7 @@ function QuickStart() {
         </ol>
         <pre className="mt-4 rounded-lg border border-surface-border bg-neutral-900 p-4 text-sm text-green-400 overflow-x-auto">
 {`# Send a notification in 1 line
-curl -X POST ${import.meta.env.VITE_API_URL || 'https://api.yourdomain.com'}/v1/notifications \\
+curl -X POST ${import.meta.env.VITE_API_URL || 'https://api.notifystack.shop'}/v1/notifications \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: ntf_live_YOUR_KEY" \\
   -d '{"event":"USER_SIGNUP","data":{"email":"test@example.com","name":"Ayush"}}'`}
@@ -117,7 +117,7 @@ await notify.send({
 });
 
 // Or using Raw cURL
-curl -X POST ${import.meta.env.VITE_API_URL || 'https://api.yourdomain.com'}/v1/notifications \\
+curl -X POST ${import.meta.env.VITE_API_URL || 'https://api.notifystack.shop'}/v1/notifications \\
   -H "x-api-key: <API_KEY>" \\
   -H "Content-Type: application/json" \\
   -d '{"event":"USER_SIGNUP", "data":{"name":"Ayush", "email":"ayush@example.com"}}'`}
@@ -185,7 +185,7 @@ function SdkUsage() {
         <pre className="rounded-lg border border-surface-border bg-neutral-900 p-4 text-sm text-green-400 overflow-x-auto">
 {`const NotifySDK = require("notify-saas-sdk");
 
-// Init with automatic fallback handling handled silently on our end
+// Init (Zero-Config: defaults to https://api.notifystack.shop)
 const notify = new NotifySDK(process.env.NOTIFY_API_KEY);
 
 // 1. Event-based Email (Routed to SendGrid & Mailgun automatically)
@@ -225,7 +225,7 @@ function ApiReference() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">1. Send Event (Routed to SendGrid/Mailgun)</p>
           <pre className="rounded-lg border border-surface-border bg-neutral-900 p-4 text-sm text-green-400 overflow-x-auto">
-{`curl -X POST ${import.meta.env.VITE_API_URL || 'https://api.yourdomain.com'}/v1/notifications \\
+{`curl -X POST ${import.meta.env.VITE_API_URL || 'https://api.notifystack.shop'}/v1/notifications \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: ntf_live_YOUR_KEY" \\
   -H "x-idempotency-key: unique-request-123" \\
@@ -239,7 +239,7 @@ function ApiReference() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">2. Direct Email (SendGrid/Mailgun with Failover)</p>
           <pre className="rounded-lg border border-surface-border bg-neutral-900 p-4 text-sm text-green-400 overflow-x-auto">
-{`curl -X POST ${import.meta.env.VITE_API_URL || 'https://api.yourdomain.com'}/v1/notifications \\
+{`curl -X POST ${import.meta.env.VITE_API_URL || 'https://api.notifystack.shop'}/v1/notifications \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: ntf_live_YOUR_KEY" \\
   -d '{
@@ -253,7 +253,7 @@ function ApiReference() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">3. Direct SMS (Routed to Twilio)</p>
           <pre className="rounded-lg border border-surface-border bg-neutral-900 p-4 text-sm text-green-400 overflow-x-auto">
-{`curl -X POST ${import.meta.env.VITE_API_URL || 'https://api.yourdomain.com'}/v1/notifications \\
+{`curl -X POST ${import.meta.env.VITE_API_URL || 'https://api.notifystack.shop'}/v1/notifications \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: ntf_live_YOUR_KEY" \\
   -d '{
@@ -266,7 +266,7 @@ function ApiReference() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">Retry Failed Notification</p>
           <pre className="rounded-lg border border-surface-border bg-neutral-900 p-4 text-sm text-green-400 overflow-x-auto">
-{`curl -X POST ${import.meta.env.VITE_API_URL || 'https://api.yourdomain.com'}/v1/notifications/dlq/ntf_abc123/requeue \\
+{`curl -X POST ${import.meta.env.VITE_API_URL || 'https://api.notifystack.shop'}/v1/notifications/dlq/ntf_abc123/requeue \\
   -H "x-api-key: ntf_live_YOUR_KEY"`}
           </pre>
         </div>
@@ -294,7 +294,7 @@ function InAppNotification() {
             This ID should correspond to the unique user ID in your own system.
           </p>
           <pre className="rounded-lg border border-surface-border bg-neutral-900 p-4 text-sm text-blue-400 overflow-x-auto">
-{`curl -X POST ${import.meta.env.VITE_API_URL || 'https://api.yourdomain.com'}/v1/notifications \\
+{`curl -X POST ${import.meta.env.VITE_API_URL || 'https://api.notifystack.shop'}/v1/notifications \\
   -H "x-api-key: ntf_live_YOUR_KEY" \\
   -d '{
     "channel": "inapp",

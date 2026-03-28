@@ -172,7 +172,7 @@ export default function Playground() {
                 React Snippet <div className="h-1 w-1 rounded-full bg-blue-500 animate-pulse" />
               </h3>
               <pre className="overflow-x-auto text-[12px] sm:text-[13px] leading-relaxed text-blue-100/90 scrollbar-thin scrollbar-thumb-neutral-700">
-{`import { NotificationBell } from "@notifystack/react";
+{`import { NotificationBell } from "@ayush0x44/notifystack";
 
 function Navbar() {
   return (
@@ -184,7 +184,7 @@ function Navbar() {
         polling, and 'Mark as Read' out-of-the-box.
        */}
       <NotificationBell 
-        apiKey="ntf_live_xxxx"
+        apiKey="ntf_live_your_key"
         externalUserId="user_uuid_here" 
       />
     </nav>

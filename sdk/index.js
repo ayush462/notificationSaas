@@ -15,7 +15,7 @@ class NotifySDK {
   /**
    * @param {string} apiKey - Your NotifyStack API key (ntf_live_xxx)
    * @param {object} [options]
-   * @param {string} [options.baseUrl="http://localhost:3000"] - API base URL
+   * @param {string} [options.baseUrl="https://api.notifystack.shop"] - API base URL
    * @param {number} [options.maxRetries=3] - Max retry attempts
    * @param {number} [options.timeoutMs=10000] - Request timeout in ms
    * @param {boolean} [options.debug=false] - Enable verbose logging
@@ -25,7 +25,7 @@ class NotifySDK {
       throw new Error("Invalid API key. Must start with 'ntf_live_'");
     }
     this.apiKey = apiKey;
-    this.baseUrl = (options.baseUrl || "http://localhost:3000").replace(/\/$/, "");
+    this.baseUrl = (options.baseUrl || "https://api.notifystack.shop").replace(/\/$/, "");
     this.maxRetries = options.maxRetries ?? 3;
     this.timeoutMs = options.timeoutMs ?? 30000;
     this.debug = options.debug || false;

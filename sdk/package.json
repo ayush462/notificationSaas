@@ -1,6 +1,6 @@
 {
   "name": "@ayush0x44/notifystack",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "The official Node.js SDK for NotifyStack — a scalable, production-ready notification SaaS platform.",
   "main": "index.js",
   "scripts": {
