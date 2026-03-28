@@ -1,0 +1,16 @@
+{
+  "name": "notifystack",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "infra": "docker-compose up -d postgres redis zookeeper kafka",
+    "install:all": "npm install --prefix api && npm install --prefix worker && npm install --prefix dashboard",
+    "dev:api": "npm run dev --prefix api",
+    "dev:worker": "npm run dev --prefix worker",
+    "dev:dashboard": "npm run dev --prefix dashboard",
+    "dev": "npx concurrently \"npm run dev:api\" \"npm run dev:worker\" \"npm run dev:dashboard\" -c \"bgBlue.bold,bgMagenta.bold,bgGreen.bold\" -n \"API,WORKER,DASH\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

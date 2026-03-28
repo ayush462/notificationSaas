@@ -129,10 +129,24 @@ const notify = new NotifySDK("ntf_live_YOUR_GENERATED_KEY", {
 });
 
 async function run() {
+  // 1. Event-based Email (Routed to SendGrid & Mailgun automatically)
   await notify.track("ORDER_PLACED", {
     email: "buyer@example.com",
     orderId: "#10928",
     total: "$49.99"
+  });
+
+  // 2. Direct Email via SendGrid or Mailgun (Depends on worker/.env config, handles failover natively)
+  await notify.send({
+    to: "user@example.com",
+    subject: "Welcome to NotifyStack",
+    body: "<h1>Thanks for joining!</h1>"
+  });
+
+  // 3. SMS via Twilio (Requires TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN in worker/.env)
+  await notify.sendSms({
+    to: "+1234567890",
+    body: "Your package has been shipped!"
   });
 }
 ```

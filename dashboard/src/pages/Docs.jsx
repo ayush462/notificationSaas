@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, Terminal, Zap, Key, Shield, Code, Layers, ServerCrash, Share2 } from "lucide-react";
+import { BookOpen, Terminal, Zap, Key, Shield, Code, Layers, ServerCrash, Share2, Bell } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../lib/utils";
 
@@ -10,6 +10,8 @@ const sections = [
   { id: "providers", title: "Providers & Failover", icon: Share2 },
   { id: "sdk-usage", title: "SDK Usage (Node.js)", icon: Code },
   { id: "api-reference", title: "API Reference", icon: Terminal },
+  { id: "webhooks-suppressions", title: "Webhooks & Suppressions", icon: Shield },
+  { id: "in-app", title: "In-App Notification Center", icon: Bell },
   { id: "security", title: "API Key Security", icon: Key },
 ];
 
@@ -100,6 +102,27 @@ function EventSystem() {
             </tbody>
           </table>
         </div>
+
+        <div>
+          <h3 className="text-base font-semibold text-ink mb-2">Code Example</h3>
+          <p className="mb-2">Once you create a `USER_SIGNUP` template in the Dashboard, you trigger it from your backend code like this:</p>
+          <pre className="rounded-lg border border-surface-border bg-neutral-900 p-4 text-sm text-green-400 overflow-x-auto">
+{`// Using the Node.js SDK
+await notify.send({
+  event: "USER_SIGNUP",
+  data: {
+    name: "Ayush",
+    email: "ayush@example.com"
+  }
+});
+
+// Or using Raw cURL
+curl -X POST http://localhost:3000/v1/notifications \\
+  -H "x-api-key: <API_KEY>" \\
+  -H "Content-Type: application/json" \\
+  -d '{"event":"USER_SIGNUP", "data":{"name":"Ayush", "email":"ayush@example.com"}}'`}
+          </pre>
+        </div>
       </div>
     </div>
   );
@@ -165,18 +188,24 @@ function SdkUsage() {
 // Init with automatic fallback handling handled silently on our end
 const notify = new NotifySDK(process.env.NOTIFY_API_KEY);
 
-// 1. Send via pre-defined template
+// 1. Event-based Email (Routed to SendGrid & Mailgun automatically)
 await notify.track("ORDER_PLACED", {
   email: "buyer@example.com",
   orderId: "#10928",
   total: "$49.99"
 });
 
-// 2. Or send raw notification
+// 2. Direct Email via SendGrid or Mailgun (Handles failover natively)
 await notify.send({
   to: "buyer@example.com",
   subject: "Shipping Update",
   body: "Your package #10928 has shipped via UPS."
+});
+
+// 3. SMS via Twilio (Requires Twilio config in worker backend)
+await notify.sendSms({
+  to: "+1234567890",
+  body: "Your validation code is: 123456"
 });`}
         </pre>
       </div>
@@ -194,7 +223,7 @@ function ApiReference() {
 
       <div className="space-y-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">Send Event</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">1. Send Event (Routed to SendGrid/Mailgun)</p>
           <pre className="rounded-lg border border-surface-border bg-neutral-900 p-4 text-sm text-green-400 overflow-x-auto">
 {`curl -X POST http://localhost:3000/v1/notifications \\
   -H "Content-Type: application/json" \\
@@ -206,12 +235,106 @@ function ApiReference() {
   }'`}
           </pre>
         </div>
+        
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">2. Direct Email (SendGrid/Mailgun with Failover)</p>
+          <pre className="rounded-lg border border-surface-border bg-neutral-900 p-4 text-sm text-green-400 overflow-x-auto">
+{`curl -X POST http://localhost:3000/v1/notifications \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: ntf_live_YOUR_KEY" \\
+  -d '{
+    "recipientEmail": "user@test.com",
+    "subject": "System Alert",
+    "body": "Your servers are down."
+  }'`}
+          </pre>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">3. Direct SMS (Routed to Twilio)</p>
+          <pre className="rounded-lg border border-surface-border bg-neutral-900 p-4 text-sm text-green-400 overflow-x-auto">
+{`curl -X POST http://localhost:3000/v1/notifications \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: ntf_live_YOUR_KEY" \\
+  -d '{
+    "recipientPhone": "+1234567890",
+    "body": "Your login code is 123456"
+  }'`}
+          </pre>
+        </div>
+
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">Retry Failed Notification</p>
           <pre className="rounded-lg border border-surface-border bg-neutral-900 p-4 text-sm text-green-400 overflow-x-auto">
 {`curl -X POST http://localhost:3000/v1/notifications/dlq/ntf_abc123/requeue \\
   -H "x-api-key: ntf_live_YOUR_KEY"`}
           </pre>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InAppNotification() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-ink mb-2">In-App Notification Center</h2>
+        <p className="text-sm text-ink-muted leading-relaxed">
+          The In-App Notification Center allows you to display a real-time notification feed directly in your web application. 
+          Unlike Email or SMS, In-App notifications are delivered to a database-backed feed which your frontend can consume via our SDK.
+        </p>
+      </div>
+
+      <div className="space-y-8 text-sm text-ink-muted">
+        <div>
+          <h3 className="text-base font-semibold text-ink mb-3">1. Enable In-App Notifications</h3>
+          <p className="mb-3">
+            To send an in-app notification, set the <code>channel</code> to <code>"inapp"</code> and provide an <code>externalUserId</code>. 
+            This ID should correspond to the unique user ID in your own system.
+          </p>
+          <pre className="rounded-lg border border-surface-border bg-neutral-900 p-4 text-sm text-blue-400 overflow-x-auto">
+{`curl -X POST http://localhost:3000/v1/notifications \\
+  -H "x-api-key: ntf_live_YOUR_KEY" \\
+  -d '{
+    "channel": "inapp",
+    "externalUserId": "user_123",
+    "subject": "New Message",
+    "body": "You have a new direct message from Sarah."
+  }'`}
+          </pre>
+        </div>
+
+        <div>
+          <h3 className="text-base font-semibold text-ink mb-3">2. Frontend Integration (React)</h3>
+          <p className="mb-3">
+            Use our <code>NotificationBell</code> component to add a live, interactive bell to your navbar. 
+            It handles polling, unread counts, and marking items as read automatically.
+          </p>
+          <pre className="rounded-lg border border-surface-border bg-neutral-900 p-4 text-sm text-blue-400 overflow-x-auto">
+{`import { NotificationBell } from "@notifystack/react";
+
+function Layout({ user }) {
+  return (
+    <nav>
+      <Logo />
+      <NotificationBell 
+        apiKey="ntf_live_xxxx" // Public Prefixed Keys are safe for frontend
+        externalUserId={user.id} 
+      />
+    </nav>
+  );
+}`}
+          </pre>
+        </div>
+
+        <div className="card bg-blue-50/50 border-blue-200">
+          <h4 className="font-semibold text-blue-900 mb-1 flex items-center gap-2">
+            <Layers className="h-4 w-4" /> Live Playground
+          </h4>
+          <p className="text-blue-800 text-xs">
+            Want to see it in action? Head over to the **In-App Playground** tab in your dashboard to test triggering and viewing notifications in real-time.
+          </p>
         </div>
       </div>
     </div>
@@ -234,6 +357,40 @@ function Security() {
   );
 }
 
+function WebhooksSuppressions() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-ink mb-2">Webhooks & Suppressions</h2>
+        <p className="text-sm text-ink-muted">Manage your email deliverability and real-time events.</p>
+      </div>
+
+      <div className="space-y-8 text-sm text-ink-muted">
+        <div>
+          <h3 className="text-lg font-bold text-ink mb-2">What is a Webhook?</h3>
+          <p className="mb-3">
+            Webhooks allow NotifyStack to ping **your backend server** the exact second an event happens. 
+            For example, if you send an email and it successfully lands in the user's inbox, or if an SMS fails to send because of a bad number, we will make a <code>POST</code> request to your webhook URL.
+          </p>
+          <p className="mb-3">
+            You can manage these endpoints in the **Webhooks** tab. All webhook payloads are signed with an HMAC `NotifyStack-Signature` header so you can verify they came from us.
+          </p>
+        </div>
+
+        <div>
+           <h3 className="text-lg font-bold text-ink mb-2">What is the Suppression List?</h3>
+           <p className="mb-3">
+             To protect your SendGrid/Twilio sender reputation, you must NOT continuously send messages to dead or bounced addresses.
+           </p>
+           <p className="mb-3">
+             The **Suppressions List** ensures that if an email address bounces, or if a user clicks the **Unsubscribe** link at the bottom of an email, we will permanently block all future outgoing notifications to that email address. You can view or manually add blocks in the **Suppressions** tab.
+           </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Docs() {
   const [active, setActive] = useState("quick-start");
 
@@ -244,6 +401,8 @@ export default function Docs() {
     "providers": ProvidersFailover,
     "sdk-usage": SdkUsage,
     "api-reference": ApiReference,
+    "webhooks-suppressions": WebhooksSuppressions,
+    "in-app": InAppNotification,
     "security": Security
   };
 

@@ -114,30 +114,57 @@ export default function Landing() {
           </div>
         </motion.div>
 
-        {/* Code snippet */}
+        {/* Code snippets */}
         <motion.div 
-          className="mt-16 mx-auto max-w-2xl"
+          className="mt-16 mx-auto max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-8"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
         >
-          <div className="rounded-2xl border border-neutral-200 bg-neutral-950 p-6 shadow-2xl shadow-neutral-200/50">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-3 h-3 rounded-full bg-red-400" />
-              <div className="w-3 h-3 rounded-full bg-amber-400" />
-              <div className="w-3 h-3 rounded-full bg-emerald-400" />
-              <span className="ml-2 text-xs text-neutral-500 font-mono">app.js</span>
-            </div>
-            <pre className="text-sm font-mono leading-relaxed overflow-x-auto text-neutral-300">
-<span className="text-neutral-500">{"// Install: npm install notify-saas-sdk"}</span>{"\n"}
-<span className="text-violet-400">const</span> notify = <span className="text-violet-400">new</span> <span className="text-blue-400">NotifySDK</span>(<span className="text-green-400">"ntf_live_your_key"</span>);{"\n\n"}
-<span className="text-neutral-500">{"// Send via template"}</span>{"\n"}
+          {/* Snippet 1: Email */}
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-2xl blur opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+            <div className="relative rounded-2xl border border-neutral-800 bg-neutral-950 p-6 shadow-2xl h-full flex flex-col">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-3 h-3 rounded-full bg-red-400" />
+                <div className="w-3 h-3 rounded-full bg-amber-400" />
+                <div className="w-3 h-3 rounded-full bg-emerald-400" />
+                <span className="ml-2 text-xs text-neutral-500 font-mono">email_sender.js</span>
+              </div>
+              <pre className="text-sm font-mono leading-relaxed overflow-x-auto text-neutral-300 flex-1">
+<span className="text-violet-400">const</span> notify = <span className="text-violet-400">new</span> <span className="text-blue-400">NotifySDK</span>(<span className="text-green-400">"ntf_live_key"</span>);{"\n\n"}
+<span className="text-neutral-500">{"// Send Email Event"}</span>{"\n"}
 <span className="text-violet-400">await</span> notify.<span className="text-blue-400">track</span>(<span className="text-green-400">"USER_SIGNUP"</span>, {"{"}{"\n"}
   <span className="text-neutral-400">email:</span> <span className="text-green-400">"user@example.com"</span>,{"\n"}
   <span className="text-neutral-400">name:</span>  <span className="text-green-400">"Ayush"</span>{"\n"}
 {"}"});{"\n\n"}
-<span className="text-neutral-500">{"// ✓ Email sent via SendGrid"}</span>
-            </pre>
+<span className="text-neutral-500">{"// ✓ Dynamically routed to SendGrid"}</span>{"\n"}
+<span className="text-neutral-500">{"// ✓ Fails over to Mailgun if needed"}</span>
+              </pre>
+            </div>
+          </div>
+
+          {/* Snippet 2: SMS */}
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-2xl blur opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse delay-150"></div>
+            <div className="relative rounded-2xl border border-neutral-800 bg-neutral-950 p-6 shadow-2xl h-full flex flex-col">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-3 h-3 rounded-full bg-red-400" />
+                <div className="w-3 h-3 rounded-full bg-amber-400" />
+                <div className="w-3 h-3 rounded-full bg-emerald-400" />
+                <span className="ml-2 text-xs text-neutral-500 font-mono">sms_sender.js</span>
+              </div>
+              <pre className="text-sm font-mono leading-relaxed overflow-x-auto text-neutral-300 flex-1">
+<span className="text-violet-400">const</span> notify = <span className="text-violet-400">new</span> <span className="text-blue-400">NotifySDK</span>(<span className="text-green-400">"ntf_live_key"</span>);{"\n\n"}
+<span className="text-neutral-500">{"// Send Direct SMS"}</span>{"\n"}
+<span className="text-violet-400">await</span> notify.<span className="text-blue-400">sendSms</span>({"{"}{"\n"}
+  <span className="text-neutral-400">to:</span> <span className="text-green-400">"+1234567890"</span>,{"\n"}
+  <span className="text-neutral-400">body:</span> <span className="text-green-400">"Your code is 123456"</span>{"\n"}
+{"}"});{"\n\n"}
+<span className="text-neutral-500">{"// ✓ Routed to Twilio natively"}</span>{"\n"}
+<span className="text-neutral-500">{"// ✓ Formatting & limits handled!"}</span>
+              </pre>
+            </div>
           </div>
         </motion.div>
       </section>

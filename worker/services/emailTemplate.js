@@ -211,8 +211,7 @@ function buildHtmlEmail({ subject, body, eventName, recipientEmail }) {
                     </td>
                     <td style="text-align:right;vertical-align:top;">
                       <p style="margin:0;font-size:10px;color:#d1d5db;letter-spacing:1px;font-weight:600;">AUTOMATED</p>
-                    </td>
-                  </tr>
+                      ${recipientEmail ? `<p style="margin:8px 0 0 0;font-size:10px;"><a href="${process.env.APP_URL || 'http://localhost:5173'}/unsubscribe?email=${encodeURIComponent(recipientEmail)}" style="color:#d1d5db;text-decoration:underline;">Unsubscribe</a></p>` : ""}
                 </table>
               </td>
             </tr>

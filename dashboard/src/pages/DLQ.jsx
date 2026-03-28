@@ -151,7 +151,7 @@ export default function DLQ() {
           </div>
         )}
         {!loading && !items.length && (
-          <p className="py-8 text-center text-sm text-ink-muted">🎉 No failed notifications. All clear!</p>
+          <p className="py-8 text-center text-sm text-ink-muted"> No failed notifications. All clear!</p>
         )}
       </div>
     </div>

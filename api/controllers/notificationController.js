@@ -42,8 +42,10 @@ async function createNotification(req, res, next) {
       body: req.body.body,
       event: req.body.event,
       eventName: req.body.event,
+      externalUserId: req.body.externalUserId || (req.body.data && req.body.data.userId),
       data: req.body.data,
-      metadata: req.body.metadata
+      metadata: req.body.metadata,
+      scheduledAt: req.body.scheduledAt ? new Date(req.body.scheduledAt).getTime() : undefined
     };
 
     // STEP 4: Validate per channel

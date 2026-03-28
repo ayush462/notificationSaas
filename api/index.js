@@ -15,13 +15,15 @@ const projectRoutes = require("./routes/projectRoutes");
 const apiKeyRoutes = require("./routes/apiKeyRoutes");
 const eventRoutes = require("./routes/eventRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const inappRoutes = require("./routes/inappRoutes");
 const logRoutes = require("./routes/logRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const billingRoutes = require("./routes/billingRoutes");
 const webhookRoutes = require("./routes/webhookRoutes");
-
+const projectWebhookRoutes = require("./routes/projectWebhookRoutes");
+const suppressionRoutes = require("./routes/suppressionRoutes");
 const app = express();
 
 // Security & parsing
@@ -64,15 +66,18 @@ app.get("/v1/config", (req, res) => res.json({
 app.use("/v1/auth", authRoutes);
 app.use("/v1/auth", oauthRoutes);
 
-// Projects (JWT)
-app.use("/v1/projects", projectRoutes);
-
 // API keys & events (nested under projects, JWT)
 app.use("/v1/projects/:projectId/keys", apiKeyRoutes);
 app.use("/v1/projects/:projectId/events", eventRoutes);
+app.use("/v1/projects/:projectId/webhooks", projectWebhookRoutes);
+app.use("/v1/projects/:projectId/suppressions", suppressionRoutes);
+
+// Projects (JWT) — general routes must be below specialized ones
+app.use("/v1/projects", projectRoutes);
 
 // Notifications (API key auth — for SDK)
 app.use("/v1/notifications", notificationRoutes);
+app.use("/v1/inapp", inappRoutes);
 
 // Dashboard routes (JWT)
 app.use("/v1/dashboard/notifications", dashboardRoutes);
@@ -95,6 +100,13 @@ app.use((req, res) => {
 // Error handler
 app.use(errorHandler);
 
-app.listen(config.port, () => {
-  console.log(`NotifyStack API v2.0 listening on port ${config.port} [${config.nodeEnv}]`);
+const { runMigrations } = require("./services/migrationService");
+
+runMigrations().then(() => {
+  app.listen(config.port, () => {
+    console.log(`NotifyStack API v2.0 listening on port ${config.port} [${config.nodeEnv}]`);
+  });
+}).catch((err) => {
+  console.error("Failed to start API due to migration error.", err);
+  process.exit(1);
 });

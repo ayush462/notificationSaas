@@ -5,6 +5,8 @@ const { sendNotification } = require("../services/emailSender");
 const { markSent, markFailed, markRetrying } = require("../services/notificationService");
 const { sendToDlq, retryNotification } = require("./producer");
 const { writeLog } = require("../services/logService");
+const { scheduleDelayedNotification } = require("../redis/delayQueue");
+const { fireEvent } = require("../services/webhookService");
 
 /**
  * Calculate retry delay with jitter (±20%).
@@ -26,13 +28,20 @@ async function runConsumer() {
 
   await consumer.run({
     eachMessage: async ({ message }) => {
-      const payload = JSON.parse(message.value.toString());
+      let payload;
+      try {
+        payload = JSON.parse(message.value.toString());
+      } catch (err) {
+        logger.error({ error: err.message, value: message.value?.toString() }, "invalid_json_message");
+        return; // Safely drop malformed message
+      }
+
       const attempts = (payload.attempts || 0) + 1;
       const channel = payload.channel || "email";
 
-      // Delayed retry: if scheduledAt is in the future, re-enqueue
+      // Delayed retry: if scheduledAt is in the future, push to Redis sorted set
       if (payload.scheduledAt && Date.now() < payload.scheduledAt) {
-        await retryNotification(payload);
+        await scheduleDelayedNotification(payload);
         return;
       }
 
@@ -63,6 +72,14 @@ async function runConsumer() {
             latencyMs,
             email: payload.recipientEmail
           }
+        });
+
+        // 🔥 Fire webhook
+        await fireEvent(payload.projectId, "notification.sent", {
+          id: payload.id,
+          channel,
+          provider: result.provider,
+          latencyMs
         });
 
       } catch (e) {
@@ -101,6 +118,15 @@ async function runConsumer() {
               providerErrors,
               latencyMs
             }
+          });
+
+          // 🔥 Fire webhook for failure
+          await fireEvent(payload.projectId, "notification.failed", {
+            id: payload.id,
+            channel,
+            error: e.message,
+            attempts,
+            providerErrors
           });
 
         } else {

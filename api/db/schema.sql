@@ -135,6 +135,28 @@ CREATE TABLE IF NOT EXISTS system_logs (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Webhooks for external callbacks
+CREATE TABLE IF NOT EXISTS webhooks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  secret TEXT NOT NULL,
+  active BOOLEAN DEFAULT TRUE,
+  events JSONB DEFAULT '[]',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Email suppressions (bounce, unsubscribe, complaint)
+CREATE TABLE IF NOT EXISTS email_suppressions (
+  id BIGSERIAL PRIMARY KEY,
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(project_id, email)
+);
+
 -- ============================
 -- Performance indexes
 -- ============================
@@ -153,6 +175,16 @@ CREATE INDEX IF NOT EXISTS idx_usage_logs_project_date ON usage_logs(project_id,
 CREATE INDEX IF NOT EXISTS idx_usage_logs_user ON usage_logs(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_push_subs_project ON push_subscriptions(project_id);
+CREATE INDEX IF NOT EXISTS idx_webhooks_project ON webhooks(project_id);
+CREATE INDEX IF NOT EXISTS idx_suppressions_project_email ON email_suppressions(project_id, email);
+
+-- ============================
+-- Schema Updates (In-App Feed)
+-- ============================
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS external_user_id TEXT;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_notifications_ext_user ON notifications(project_id, external_user_id);
 
 -- ============================
 -- Seed default plans

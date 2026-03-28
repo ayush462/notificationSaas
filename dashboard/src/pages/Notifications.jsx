@@ -48,6 +48,7 @@ export default function Notifications() {
               onChange={(val) => { setStatus(val); setOffset(0); }}
               options={[
                 { label: "All statuses", value: "" },
+                { label: "Scheduled", value: "scheduled" },
                 { label: "Queued", value: "queued" },
                 { label: "Sent", value: "sent" },
                 { label: "Failed", value: "failed" },
@@ -66,10 +67,9 @@ export default function Notifications() {
                   <tr>
                     <th>ID</th>
                     <th>Recipient</th>
-                    <th>Subject</th>
                     <th>Event</th>
                     <th>Status</th>
-                    <th>Attempts</th>
+                    <th>{status === "scheduled" ? "Scheduled For" : "Attempts"}</th>
                     <th>Created</th>
                   </tr>
                 </thead>
@@ -78,14 +78,22 @@ export default function Notifications() {
                     <tr key={n.id}>
                       <td className="font-mono text-xs">{n.id?.slice(0, 16)}…</td>
                       <td className="max-w-[180px] truncate">{n.recipient_email}</td>
-                      <td className="max-w-[200px] truncate text-xs">{n.subject}</td>
-                      <td className="text-xs text-ink-muted">{n.event_name || "direct"}</td>
+                      <td className="text-xs text-ink-muted">{n.event_name || "—"}</td>
                       <td>
-                        <Badge variant={n.status === "sent" ? "success" : n.status === "failed" ? "danger" : n.status === "retrying" ? "warning" : "default"}>
-                          {n.status}
+                        <Badge variant={
+                          n.status === "sent" ? "success" : 
+                          n.status === "failed" ? "danger" : 
+                          n.status === "retrying" ? "warning" : 
+                          (n.scheduled_at && new Date(n.scheduled_at) > new Date()) ? "default" : "default"
+                        }>
+                          {n.status === "queued" && n.scheduled_at && new Date(n.scheduled_at) > new Date() ? "scheduled" : n.status}
                         </Badge>
                       </td>
-                      <td className="tabular-nums">{n.attempts}</td>
+                      <td className="tabular-nums text-xs">
+                        {status === "scheduled" || (n.scheduled_at && new Date(n.scheduled_at) > new Date()) 
+                          ? new Date(n.scheduled_at).toLocaleString() 
+                          : n.attempts}
+                      </td>
                       <td className="whitespace-nowrap text-xs text-ink-muted">{new Date(n.created_at).toLocaleString()}</td>
                     </tr>
                   ))}

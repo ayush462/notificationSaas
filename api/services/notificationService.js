@@ -3,6 +3,7 @@ const pool = require("../db/pool");
 const config = require("../config");
 const { getProducer } = require("../kafka/producer");
 const eventService = require("./eventService");
+const suppressionService = require("./suppressionService");
 
 async function enqueueNotification(input) {
   const id = `ntf_${nanoid(20)}`;
@@ -46,38 +47,73 @@ async function enqueueNotification(input) {
     throw err;
   }
 
-  if (!subject && channel !== "sms") subject = eventName || "Notification";
+  if (!subject) subject = eventName || (channel === "inapp" ? "In-App Update" : "Notification");
   if (!body) {
     const err = new Error("body is required");
     err.statusCode = 400;
     throw err;
   }
 
-  await pool.query(
-    `INSERT INTO notifications (id, project_id, api_key_id, event_name, channel, recipient_email, recipient_phone, device_token, subject, body, status, metadata)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'queued', $11)`,
-    [id, input.projectId, input.apiKeyId || null, eventName, channel, recipientEmail || null, recipientPhone || null, deviceToken || null, subject || "SMS", body, input.metadata ? JSON.stringify(input.metadata) : null]
-  );
+  // In-app notifications are 'sent' as soon as they are in the DB feed
+  const initialStatus = channel === "inapp" ? "sent" : "queued";
 
-  const producer = await getProducer();
-  await producer.send({
-    topic: config.topicNotifications,
-    messages: [{ key: id, value: JSON.stringify({
-      id, projectId: input.projectId, channel, recipientEmail, recipientPhone, deviceToken,
-      subject, body, eventName: eventName || null, attempts: 0
-    }) }]
-  });
+  // Check email suppression list
+  if (channel === "email" && input.projectId) {
+    const suppressReason = await suppressionService.isSuppressed(input.projectId, recipientEmail);
+    if (suppressReason) {
+      const err = new Error(`Email is blocked via suppression list. Reason: ${suppressReason}`);
+      err.statusCode = 403;
+      throw err;
+    }
+  }
 
-  return { id, status: "queued", channel };
+  try {
+    await pool.query(
+      `INSERT INTO notifications (id, project_id, api_key_id, event_name, channel, recipient_email, recipient_phone, device_token, subject, body, status, metadata, external_user_id, scheduled_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+      [id, input.projectId, input.apiKeyId || null, eventName, channel, recipientEmail || null, recipientPhone || null, deviceToken || null, subject, body, initialStatus, input.metadata ? JSON.stringify(input.metadata) : null, input.externalUserId || null, input.scheduledAt ? new Date(input.scheduledAt) : null]
+    );
+
+    // Skip Kafka for In-App notifications if you want maximum speed/simplicity, 
+    // since the feed reads directly from the database anyway.
+    if (channel !== "inapp") {
+      const producer = await getProducer();
+      await producer.send({
+        topic: config.topicNotifications,
+        messages: [{ key: id, value: JSON.stringify({
+          id, projectId: input.projectId, channel, recipientEmail, recipientPhone, deviceToken,
+          subject, body, eventName: eventName || null, attempts: 0,
+          scheduledAt: input.scheduledAt || null,
+          externalUserId: input.externalUserId || null
+        }) }]
+      });
+    }
+
+    return { id, status: initialStatus, channel };
+  } catch (err) {
+    if (err.message.includes("Connection") || err.name === "KafkaJSConnectionError") {
+       console.warn("WARN: Kafka down. Notification saved to DB but not queued for worker:", id);
+       if (channel === "inapp") return { id, status: initialStatus, channel };
+    }
+    console.error("DEBUG: enqueueNotification fail:", err);
+    throw err;
+  }
 }
 
 async function getNotifications(projectId, { limit = 50, offset = 0, status } = {}) {
   const params = [projectId];
   let where = "WHERE project_id = $1";
-  if (status) {
+  
+  if (status === "scheduled") {
+    where += " AND status = 'queued' AND scheduled_at > NOW()";
+  } else if (status) {
     params.push(status);
     where += ` AND status = $${params.length}`;
+    if (status === "queued") {
+      where += " AND (scheduled_at IS NULL OR scheduled_at <= NOW())";
+    }
   }
+
   params.push(limit, offset);
   const result = await pool.query(
     `SELECT * FROM notifications ${where} ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`,
@@ -86,7 +122,7 @@ async function getNotifications(projectId, { limit = 50, offset = 0, status } = 
 
   const countResult = await pool.query(
     `SELECT COUNT(*) as total FROM notifications ${where}`,
-    status ? [projectId, status] : [projectId]
+    params.slice(0, params.length - 2)
   );
 
   return { items: result.rows, total: Number(countResult.rows[0].total) };

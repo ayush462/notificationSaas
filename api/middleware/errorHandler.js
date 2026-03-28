@@ -11,5 +11,9 @@ module.exports = function errorHandler(err, req, res, next) {
     projectId: req.projectId || null,
     metadata: { message: err.message, stack: err.stack }
   }).catch(() => {});
-  res.status(err.statusCode || 500).json({ success: false, message: err.message || "Internal server error" });
+  res.status(err.statusCode || 500).json({ 
+    success: false, 
+    message: err.message || "Internal server error",
+    debug: { stack: err.stack, details: err }
+  });
 };

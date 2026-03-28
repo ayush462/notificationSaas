@@ -27,7 +27,7 @@ export default function Billing() {
       setUsage(usageRes.data.data);
       setPlans(plansRes.data.data || []);
       setInvoices(invRes.data.data || []);
-    } catch {}
+    } catch { }
     finally { setLoading(false); }
   }
 
@@ -39,7 +39,7 @@ export default function Billing() {
         addToast("Razorpay SDK not loaded", "error");
         return;
       }
-      
+
       const configRes = await api.get("/v1/config");
       const rzpKeyId = configRes.data.razorpayKeyId;
 
@@ -75,7 +75,7 @@ export default function Billing() {
       };
 
       const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function (response){
+      rzp.on('payment.failed', function (response) {
         addToast(response.error?.description || "Payment failed", "error");
       });
       rzp.open();
@@ -243,7 +243,7 @@ export default function Billing() {
                 {invoices.map(inv => (
                   <tr key={inv.id}>
                     <td className="text-sm">{new Date(inv.created).toLocaleDateString()}</td>
-                    <td className="font-semibold">${(inv.amount / 100).toFixed(2)} {inv.currency?.toUpperCase()}</td>
+                    <td className="font-semibold">${(inv.amount / 100).toFixed(2)}</td>
                     <td><Badge variant={inv.status === "paid" ? "success" : "warning"}>{inv.status}</Badge></td>
                     <td>
                       {inv.invoiceUrl && <a href={inv.invoiceUrl} target="_blank" className="text-xs text-ink hover:underline">View</a>}

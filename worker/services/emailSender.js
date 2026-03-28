@@ -55,6 +55,10 @@ async function sendNotification(data) {
     });
   }
 
+  if (channel === "inapp") {
+    return { provider: "internal", channel: "inapp" };
+  }
+ 
   throw new Error(`Unknown channel: ${channel}`);
 }
 

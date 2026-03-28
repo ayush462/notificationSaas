@@ -20,7 +20,11 @@ import AdminOverview from "./pages/AdminOverview";
 import AdminDLQ from "./pages/AdminDLQ";
 import Docs from "./pages/Docs";
 import NotFound from "./pages/NotFound";
-
+import Suppressions from "./pages/Suppressions";
+import Webhooks from "./pages/Webhooks";
+import ProviderHealth from "./pages/ProviderHealth";
+import Unsubscribe from "./pages/Unsubscribe";
+import Playground from "./pages/Playground";
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <PageLoader />;
@@ -50,6 +54,7 @@ export default function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/unsubscribe" element={<Unsubscribe />} />
 
       {/* Protected dashboard */}
       <Route
@@ -68,13 +73,17 @@ export default function App() {
         <Route path="logs" element={<Logs />} />
         <Route path="apikeys" element={<ApiKeys />} />
         <Route path="events" element={<Events />} />
+        <Route path="playground" element={<Playground />} />
         <Route path="projects" element={<Projects />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="billing" element={<Billing />} />
         <Route path="docs" element={<Docs />} />
+        <Route path="suppressions" element={<Suppressions />} />
+        <Route path="webhooks" element={<Webhooks />} />
         <Route path="admin/overview" element={<AdminRoute><AdminOverview /></AdminRoute>} />
         <Route path="admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
         <Route path="admin/dlq" element={<AdminRoute><AdminDLQ /></AdminRoute>} />
+        <Route path="admin/health" element={<AdminRoute><ProviderHealth /></AdminRoute>} />
       </Route>
 
       {/* Backward compat */}

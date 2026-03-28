@@ -5,7 +5,8 @@ import { useProject } from "../contexts/ProjectContext";
 import {
   LayoutDashboard, Bell, AlertTriangle, ScrollText, Key, Zap,
   FolderOpen, BookOpen, Users, LogOut, ChevronDown, Plus,
-  BarChart3, ShieldAlert, TrendingUp, CreditCard, Menu, X
+  BarChart3, ShieldAlert, TrendingUp, CreditCard, Menu, X,
+  Ban, Webhook, Activity, Sparkles
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,6 +32,9 @@ export default function MainLayout() {
     { to: `${base}/logs`, label: "Activity Logs", icon: ScrollText },
     { to: `${base}/apikeys`, label: "API Keys", icon: Key },
     { to: `${base}/events`, label: "Event Templates", icon: Zap },
+    { to: `${base}/playground`, label: "In-App Playground", icon: Sparkles },
+    { to: `${base}/webhooks`, label: "Webhooks", icon: Webhook },
+    { to: `${base}/suppressions`, label: "Suppressions", icon: Ban },
     { to: `${base}/analytics`, label: "Analytics", icon: TrendingUp },
     { to: `${base}/projects`, label: "Projects", icon: FolderOpen },
     { to: `${base}/billing`, label: "Billing", icon: CreditCard },
@@ -39,6 +43,7 @@ export default function MainLayout() {
 
   const adminNav = [
     { to: `${base}/admin/overview`, label: "System Overview", icon: BarChart3 },
+    { to: `${base}/admin/health`, label: "Provider Health", icon: Activity },
     { to: `${base}/admin/users`, label: "All Users", icon: Users },
     { to: `${base}/admin/dlq`, label: "System DLQ", icon: ShieldAlert }
   ];
