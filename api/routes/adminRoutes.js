@@ -75,4 +75,18 @@ router.post("/dlq/:id/requeue", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// GET provider health from worker
+router.get("/health", async (req, res, next) => {
+  try {
+    const workerUrl = (process.env.WORKER_URL || "http://localhost:3001").replace(/\/$/, "");
+    const response = await fetch(`${workerUrl}/provider-health`);
+    if (!response.ok) throw new Error("Worker health endpoint returned error status");
+    const data = await response.json();
+    res.json({ success: true, data });
+  } catch (e) {
+    console.error("DEBUG: Admin health check fail:", e.message);
+    res.status(503).json({ success: false, message: "Worker health service unavailable", error: e.message });
+  }
+});
+
 module.exports = router;

@@ -88,7 +88,7 @@ export default function AdminDLQ() {
           </div>
         )}
         {!loading && !items.length && (
-          <p className="py-8 text-center text-sm text-ink-muted">🎉 All clear — no failed notifications.</p>
+          <p className="py-8 text-center text-sm text-ink-muted"> All clear — no failed notifications.</p>
         )}
       </div>
     </div>

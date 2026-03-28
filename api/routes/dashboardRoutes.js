@@ -73,17 +73,4 @@ router.get("/admin/dlq", requireAuth, requireRole("ADMIN"), async (req, res, nex
     next(e);
   }
 });
-// Admin: GET provider health
-router.get("/admin/provider-health", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
-  try {
-    const workerUrl = (process.env.WORKER_URL || "http://localhost:3001").replace(/\/$/, "");
-    const response = await fetch(`${workerUrl}/provider-health`);
-    if (!response.ok) throw new Error("Worker unavailable");
-    const data = await response.json();
-    return res.json({ success: true, data });
-  } catch (e) {
-    next(e);
-  }
-});
-
 module.exports = router;
