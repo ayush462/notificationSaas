@@ -1,67 +1,98 @@
-# NotifyStack Node.js SDK
+# 📦 @ayush0x44/notifystack
 
-[![npm version](https://img.shields.io/npm/v/@ayush0x44/notifystack.svg)](https://www.npmjs.com/package/@ayush0x44/notifystack)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+The official Node.js SDK for **NotifyStack** — a scalable, production-grade notification SaaS platform.
 
-The official Node.js SDK for **NotifyStack** — a high-performance, distributed notification SaaS platform. Send Emails, SMS, Push, and In-App notifications with a single unified API.
+[![NPM Version](https://img.shields.io/npm/v/@ayush0x44/notifystack?color=blue&style=flat-square)](https://www.npmjs.com/package/@ayush0x44/notifystack)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-## 🚀 Features
-
-- **Zero Dependencies**: Lightweight and fast (uses native `fetch`).
-- **Unified API**: One interface for all channels (Email, SMS, Push, In-App).
-- **Auto-Retry**: Built-in exponential backoff for network flakes.
-- **Idempotency**: Safe retries without duplicate notifications.
-- **Batching**: Send up to 100 notifications in a single call.
-
-## 📦 Installation
+## 🚀 Installation
 
 ```bash
 npm install @ayush0x44/notifystack
 ```
 
-## 🛠️ Quick Start
+---
 
+## 🔥 Features
+- **Zero-Config:** Automatically points to the production `api.notifystack.shop` domain.
+- **Smart Retries:** Automatic exponential backoff for failed requests.
+- **Idempotency:** Native support for `x-idempotency-key` to prevent duplicate sends.
+- **Multi-Channel:** Full support for Email, SMS, and Push notifications from a single client.
+- **Health Checks:** Built-in methods to verify API connectivity.
+
+---
+
+## 🛠️ Usage
+
+### ⚙️ 1. Initialization
 ```javascript
 const { NotifySDK } = require("@ayush0x44/notifystack");
 
-// Initialize the client
-const notify = new NotifySDK("ntf_live_your_api_key", {
-  baseUrl: "https://notificationsaas.onrender.com" // Point to your cloud API
-});
-
-async function main() {
-  // 1. Send an Event-based notification (uses templates)
-  await notify.track("ORDER_PLACED", {
-    email: "customer@example.com",
-    orderId: "ORD-123"
-  });
-
-  // 2. Send a direct Email
-  await notify.send({
-    to: "hello@world.com",
-    subject: "Welcome!",
-    body: "Thanks for joining our platform."
-  });
-
-  // 3. Send an SMS
-  await notify.sendSms({
-    to: "+1234567890",
-    body: "Your verification code is 1234"
-  });
-}
-
-main().catch(console.error);
+// Create your client (Zero-Config: no baseUrl required!)
+const sdk = new NotifySDK("ntf_live_xxxx_your_api_key");
 ```
 
-## ⚙️ Configuration
+### 🎯 2. Event-Based Notification (Recommended)
+Map your backend events to visual templates created in the NotifyStack Dashboard.
 
-| Option | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `baseUrl` | `string` | `http://localhost:3000` | The URL of your NotifyStack API |
-| `maxRetries` | `number` | `3` | Max attempts for failed requests |
-| `timeoutMs` | `number` | `10000` | Request timeout duration |
-| `debug` | `boolean` | `false` | Enable verbose logging |
+```javascript
+await sdk.track("USER_WELCOME", {
+  email: "user@example.com",
+  name: "Ayush",
+  plan: "Pro"
+});
+```
 
-## 📖 License
+### ✉️ 3. Direct Email
+Send raw email content without a template.
 
-MIT © [Ayush](https://github.com/ayush462)
+```javascript
+await sdk.send({
+  to: "user@example.com",
+  subject: "Security Alert",
+  body: "Wait! Was this you logging in?"
+});
+```
+
+### 📱 4. Direct SMS
+Send SMS via Twilio (requires configuration in your NotifyStack dashboard).
+
+```javascript
+await sdk.sendSms({
+  to: "+1234567890",
+  body: "Your verification code is: 123456"
+});
+```
+
+### 🏥 5. Health Check
+Verify your connection to the NotifyStack cloud.
+
+```javascript
+const status = await sdk.health();
+console.log(status.ok); // true
+```
+
+---
+
+## 🛡️ Error Handling
+NotifyStack uses a custom error class for precise debugging.
+
+```javascript
+const { NotifyError } = require("@ayush0x44/notifystack");
+
+try {
+  await sdk.send({ ... });
+} catch (e) {
+  if (e instanceof NotifyError) {
+    console.error(`Status ${e.status}:`, e.message);
+  }
+}
+```
+
+---
+
+## 🔗 Resources
+- **Live Dashboard:** [notifystack.shop](https://notifystack.shop)
+- **API Documentation:** [notifystack.shop/docs](https://notifystack.shop/docs)
+
+MIT © **Ayush**
