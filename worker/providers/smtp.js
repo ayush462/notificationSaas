@@ -8,6 +8,12 @@ class SmtpProvider {
       port: config.port,
       secure: config.port === 465,
       auth: { user: config.user, pass: config.pass },
+      connectionTimeout: 30000,
+      greetingTimeout: 30000,
+      socketTimeout: 60000,
+      dnsLookup: (hostname, options, callback) => {
+        require("dns").lookup(hostname, { family: 4 }, callback);
+      },
       pool: true,
       maxConnections: 5,
       maxMessages: 100,

@@ -6,7 +6,7 @@ module.exports = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
   corsOrigin: process.env.CORS_ORIGIN || "http://localhost:5173",
   kafkaBrokers: (process.env.KAFKA_BROKERS || "localhost:9092").split(","),
-  topicNotifications: process.env.KAFKA_TOPIC || "email_queue",
+  topicNotifications: process.env.KAFKA_TOPIC_NOTIFICATIONS || "email_queue",
   topicDlq: process.env.KAFKA_TOPIC_DLQ || "email_dlq",
   kafkaClientId: process.env.KAFKA_CLIENT_ID || "notifystack-api",
   kafkaSsl: process.env.KAFKA_SSL === "true",

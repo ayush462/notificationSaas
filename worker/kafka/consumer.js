@@ -29,7 +29,7 @@ async function runConsumer() {
   const consumer = kafka.consumer({ groupId: config.groupId });
 
   await consumer.connect();
-  await consumer.subscribe({ topic: config.topicNotifications, fromBeginning: false });
+  await consumer.subscribe({ topic: config.topicNotifications, fromBeginning: true });
 
   await consumer.run({
     eachMessage: async ({ message }) => {
