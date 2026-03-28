@@ -12,7 +12,6 @@
     "ioredis": "^5.10.1",
     "kafkajs": "^2.2.4",
     "nodemailer": "^8.0.4",
-    "notifystack": "file:..",
     "pg": "^8.16.3",
     "pino": "^9.9.4"
   }
