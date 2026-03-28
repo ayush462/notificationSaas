@@ -1,84 +1,74 @@
-# 🔔 NotifyStack — Scalable Multi-Channel Notification SaaS
+# 🔔 NotifyStack — System Architecture
 
-[![NPM Version](https://img.shields.io/npm/v/@ayush0x44/notifystack?color=blue&style=flat-square)](https://www.npmjs.com/package/@ayush0x44/notifystack)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+*A high-throughput, multi-channel notification engine built on modern distributed patterns.*
 
-**NotifyStack** is a distributed notification engine that simplifies global multi-channel delivery (Email, SMS, Push, In-App). Built for high-availability, it features automatic provider failover, real-time analytics, and a "Zero-Config" SDK.
+## 🏗️ Architecture Overview
 
-🚀 **Dashboard:** [https://notifystack.shop](https://notifystack.shop)  
-🔗 **Production API:** `https://api.notifystack.shop`
-
----
-
-## 🔥 The Problem: Reliable Delivery is Hard
-Most applications break when a single notification provider (like SendGrid or Twilio) experiences an outage. NotifyStack solves this with **Infrastructure-as-a-Service** that handles the complexity of delivery so you don't have to.
-
-## 🚀 Key Features
-
-### 🛡️ 1. Intelligent Failover & Circuit Breakers
-Our worker engine monitors provider health in real-time. If a primary provider yields a 5xx error or high latency, the **Circuit Breaker** opens, and traffic is instantly shifted to fallback providers (Mailgun/SMTP) without dropping your request.
-
-### 📦 2. "Zero-Config" Node.js SDK
-Stop managing multiple API keys and endpoints. The official SDK defaults to our production-ready infrastructure out of the box. Just `npm install @ayush0x44/notifystack`.
-
-### ⚡ 3. High-Throughput Architecture
-Built on **Redpanda (Kafka)** and **Redis**, NotifyStack handles spike-heavy traffic by decoupling API ingestion from final delivery, ensuring your main application never slows down.
-
-### 🔔 4. In-App Notification Center
-A premium React widget that provides your users with a real-time notification feed. It handles polling, unread counts, and "Mark as Read" logic natively.
-
----
-
-## 🛠️ Technology Stack
-
-- **Backend:** Node.js (Express), PostgreSQL (Neon.tech)
-- **Messaging:** Redpanda Cloud (Production Kafka)
-- **Caching & Rate Limiting:** Upstash Redis
-- **Frontend:** React, Tailwind CSS, Framer Motion, Shadcn UI
-- **Infrastructure:** Render (Web Services & Workers), Vercel (Frontend)
-- **Branding:** Custom 3D Asset generation & Premium Design System
-
----
-
-## 城堡 Architecture Overview
+The system is designed for high-availability and reliability, using **Kafka** for decoupling processing, **Redis** for rate-limiting and circuit-breaking, and **PostgreSQL** as the unified source of truth for notification status.
 
 ```mermaid
-graph LR
-    A[Client App] -- SDK/API --> B(Render API Service)
-    B -- Produce --> C{Redpanda Kafka}
-    C -- Consume --> D(Render Worker Service)
-    D -- Check --> E[Circuit Breaker / Redis]
-    D -- Route --> F[SendGrid]
-    D -- Fallback --> G[Mailgun]
-    D -- Fallback --> H[SMTP Cluster]
-    D -- SMS Route --> I[Twilio]
+graph TD
+    subgraph Client ["<b>Client Layer</b>"]
+        SDK["SDK (@ayush0x44/notifystack)"]
+        API_REQ["API Requests (POST /v1/notifications)"]
+    end
+
+    subgraph Ingestion ["<b>Ingestion Layer (Render API)</b>"]
+        Express["Express.js Server"]
+        Auth["API Key Auth"]
+        RateLimit["Rate Limiter (Redis)"]
+        Idempotency["Idempotency Check (Redis)"]
+    end
+
+    subgraph Storage ["<b>Data & Messaging (Cloud)</b>"]
+        Postgres[(PostgreSQL - Neon)]
+        Kafka{{Redpanda Kafka}}
+        Redis[(Upstash Redis)]
+        DLQ_Topic{{DLQ Topic / Table}}
+    end
+
+    subgraph Processing ["<b>Worker Layer (Render Worker)</b>"]
+        Consumer["Kafka Consumer"]
+        Processor["Notification Processor"]
+        CircuitBreaker["Circuit Breaker (Redis)"]
+        RetryLogic["Retry Logic (Redis Delay Queue)"]
+    end
+
+    subgraph Providers ["<b>Delivery Providers</b>"]
+        Email["SendGrid / Mailgun / SMTP"]
+        SMS["Twilio"]
+    end
+
+    %% Flow
+    SDK --> Express
+    API_REQ --> Express
+    
+    Express --> Auth
+    Auth --> RateLimit
+    RateLimit --> Idempotency
+    
+    Idempotency -- "1. Store State" --> Postgres
+    Idempotency -- "2. Produce" --> Kafka
+    
+    Kafka -- "3. Consume" --> Consumer
+    Consumer --> Processor
+    
+    Processor -- "4. Check Health" --> CircuitBreaker
+    Processor -- "5. Deliver" --> Providers
+    
+    Processor -- "Retry" --> RetryLogic
+    RetryLogic -- "Dead Letter" --> DLQ_Topic
+    
+    Processor -- "Update Status" --> Postgres
+    
+    %% Styling
+    style Client fill:#f9f9f9,stroke:#333,stroke-width:2px,rx:10,ry:10
+    style Ingestion fill:#e1f5fe,stroke:#01579b,stroke-width:2px,rx:10,ry:10
+    style Storage fill:#fff3e0,stroke:#e65100,stroke-width:2px,rx:10,ry:10
+    style Processing fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,rx:10,ry:10
+    style Providers fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px,rx:10,ry:10
 ```
 
 ---
 
-## 📦 SDK Installation
-
-```bash
-npm install @ayush0x44/notifystack
-```
-
-### Quick Usage
-```javascript
-const { NotifySDK } = require("@ayush0x44/notifystack");
-const sdk = new NotifySDK("ntf_live_xxxx");
-
-await sdk.track("USER_WELCOME", {
-  email: "ayush@example.com",
-  name: "Ayush"
-});
-```
-
----
-
-## 🤝 Contributing
-Issues and pull requests are welcome! See the `ARCHITECTURE.md` for internal details.
-
----
-
-## 📄 License
-MIT © **Ayush**
+*For detailed internal documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).*
